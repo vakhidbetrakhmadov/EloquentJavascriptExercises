@@ -1,3 +1,5 @@
+// 4. Data Structures: Objects and Arrays
+
 // - The sum of a range
 function range(from, to, step = 1) {
     let sequence = [];
