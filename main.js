@@ -104,8 +104,8 @@ function deepEqual(lhs, rhs) {
         let lhsKeys = Object.keys(lhs), rhsKeys = Object.keys(rhs);
         if (lhsKeys.length === rhsKeys.length) {
             let result = true;
-            for(let i = 0, j = 0; result && i < lhsKeys.length && j < rhsKeys.length; i++, j++) {
-                result &= deepEqual(lhs[lhsKeys[i]], rhs[rhsKeys[j]]);
+            for(let i = 0; result && i < lhsKeys.length; i++) {
+                result = (lhsKeys[i] === rhsKeys[i]) && deepEqual(lhs[lhsKeys[i]], rhs[rhsKeys[i]]);
             }
             return result;
         }
