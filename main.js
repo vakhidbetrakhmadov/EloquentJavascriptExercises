@@ -174,7 +174,7 @@ console.log(everySome([], n => n < 10));
 
 // - Dominant writing direction
 function dominantDirection(text) {
-    const scripts = require("./scripts.js");
+    const scripts = require("./auxiliary/scripts.js");
     const directionsCount = {};
     for(const char of text) {
         const codePoint = char.codePointAt(0);
