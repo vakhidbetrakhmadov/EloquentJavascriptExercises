@@ -121,3 +121,73 @@ console.log(deepEqual(obj, {here: 1, object: 2}));
 // → false
 console.log(deepEqual(obj, {here: {is: "an"}, object: 2}));
 // → true
+
+// 5. Higher-Order Functions
+
+// - Flattening
+function flattened(array) { 
+    return array.reduce((acc, next) => acc.concat(next))
+}
+
+let arrays = [[1, 2, 3], [4, 5], [6]];
+console.log(flattened(arrays));
+// → [1, 2, 3, 4, 5, 6]
+
+// - Your own loop
+function loop(init, check, update, body) { 
+    for(let i = init; check(i); i = update(i)) { 
+        body(i);
+    }
+}
+
+loop(3, n => n > 0, n => n - 1, console.log);
+// → 3
+// → 2
+// → 1
+
+// - Everything
+function everyLoop(array, test) {
+    for(let element of array) { 
+        if (!test(element)) { 
+            return false;
+        }
+    }
+    return true;
+}
+
+function everySome(array, test) {
+    return !array.some((x) => !test(x))
+}
+
+console.log(everyLoop([1, 3, 5], n => n < 10));
+// → true
+console.log(everyLoop([2, 4, 16], n => n < 10));
+// → false
+console.log(everyLoop([], n => n < 10));
+// → true
+console.log(everySome([1, 3, 5], n => n < 10));
+// → true
+console.log(everySome([2, 4, 16], n => n < 10));
+// → false
+console.log(everySome([], n => n < 10));
+// → true
+
+// - Dominant writing direction
+function dominantDirection(text) {
+    const scripts = require("./scripts.js");
+    const directionsCount = {};
+    for(const char of text) {
+        const codePoint = char.codePointAt(0);
+        const scriptForCodePoint = scripts.find(x => x.ranges.some(([from, to]) => codePoint >= from && codePoint < to));
+        if (scriptForCodePoint) { 
+            directionsCount[scriptForCodePoint.direction] = (directionsCount[scriptForCodePoint.direction] || 0) + 1;
+        }
+    }
+    return Object.keys(directionsCount).reduce((result, key) => directionsCount[key] > directionsCount[result] ? key : result);
+} 
+
+console.log(dominantDirection("Hello!"));
+// → ltr
+console.log(dominantDirection("Hey, مساء الخير"));
+// → rtl
+
