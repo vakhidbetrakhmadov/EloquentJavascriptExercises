@@ -191,3 +191,209 @@ console.log(dominantDirection("Hello!"));
 console.log(dominantDirection("Hey, مساء الخير"));
 // → rtl
 
+
+// 6. The Secret Life of Objects
+
+// - A vector type
+class Vec { 
+    constructor(x, y) { 
+        this.x = x;
+        this.y = y;
+    };
+
+    plus(vec) { 
+        return new Vec(this.x + vec.x, this.y + vec.y);
+    };
+
+    minus(vec) { 
+        return new Vec(this.x - vec.x, this.y - vec.y);
+    };
+
+    get length() { 
+        return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
+    }
+}
+
+console.log(new Vec(1, 2).plus(new Vec(2, 3)));
+// → Vec{x: 3, y: 5}
+console.log(new Vec(1, 2).minus(new Vec(2, 3)));
+// → Vec{x: -1, y: -1}
+console.log(new Vec(3, 4).length);
+// → 5
+
+// - Groups
+String.prototype.hash = function() {
+    let hash = 0;
+    for(let i = 0; i < this.length; i++) {
+        const unicode = this.charCodeAt(i)
+        hash  = ((unicode << 5) - hash) + unicode;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+}
+
+class Group {
+
+    // Constructors
+    constructor() { 
+        // Private properties
+        this._buckets = [];
+        this._bucketsCount = 8;
+        // Public properties 
+        this.length = 0;
+    }
+
+    static from(iterable) {
+        const group = new Group();
+        iterable.forEach(element => group.add(element));
+        return group;
+    }
+
+    // Public methods
+    has(value) { 
+        const index = this._bucketIndexFor(value);
+        const bucket = this._buckets[index];
+        return this._bucketHasValue(bucket, value);
+    }
+
+    add(value) {
+        this._resizeIfNeeded();
+        const added = this._add(value); 
+        if (added) this.length++; 
+        return added;
+    }
+
+    delete(value) { 
+        const deleted = this._delete(value);
+        if (deleted) this.length--;
+        return deleted;
+    }
+
+    // Private methods
+    _bucketIndexFor(value) { 
+        return Math.abs(JSON.stringify(value).hash()) % this._bucketsCount;
+    }
+
+    _resizeIfNeeded() { 
+        const THRESHOLD = 0.75;
+        if (this._loadFactor >= THRESHOLD)
+            this._bucketsCount *= 2;
+    }
+
+    _add(value) { 
+        const index = this._bucketIndexFor(value);
+        const bucket = this._buckets[index];
+        
+        if (this._bucketHasValue(bucket, value)) return false;
+
+        this._buckets[index] = { value, next: bucket };
+        return true;
+    }
+
+    _delete(value) { 
+        const index = this._bucketIndexFor(value);
+        const bucket = this._buckets[index]
+
+        if (!bucket) return false;
+
+        if (bucket.value === value) { 
+            this._buckets[index] = bucket.next;
+            return true
+        }
+
+        for(let previous = bucket, current = bucket.next;
+            current;
+            previous = current, current = current.next);
+        { 
+            if (current.value === value)  {
+                previous.next = current.next;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    _bucketHasValue(bucket, value) { 
+        for(let current = bucket; current; current = current.next) { 
+            if (current.value === value) return true;
+        }
+        return false;
+    }
+
+    get _loadFactor() { 
+        return this.length / this._bucketsCount;
+    }
+}
+
+let group = Group.from([10, 20]);
+console.log(group.has(10));
+// → true
+console.log(group.has(30));
+// → false
+group.add(10);
+group.delete(10);
+console.log(group.has(10));
+// → false
+
+class GroupUnitTests { 
+    static run() { 
+        const tests = [
+            (test, group) => {
+                console.assert(group.length === 0, test);
+                console.assert(!group.has(Math.floor(Math.random * 10)), test);
+            },
+            (test, group) => { 
+                const added = group.add(1);
+
+                console.assert(group.length === 1, test);
+                console.assert(added, test);
+                console.assert(group.has(1), test);
+            },
+            (test, group) => { 
+                const added1 = group.add(1);
+                const added2 = group.add(1);
+
+                console.assert(group.length === 1, test);
+                console.assert(added1 && !added2, test);
+                console.assert(group.has(1), test);
+            },
+            (test, group) => { 
+                const added1 = group.add(1);
+                const added2 = group.add(2);
+
+                console.assert(group.length === 2, test);
+                console.assert(added1 && added2, test);
+                console.assert(group.has(1) && group.has(2), test);
+            },
+            (test, group) => {
+                const deleted = group.delete(1);
+
+                console.assert(group.length === 0, test);
+                console.assert(!deleted, test);
+            },
+            (test, group) => {
+                group.add(1);
+
+                const deleted = group.delete(1);
+
+                console.assert(group.length === 0, test);
+                console.assert(deleted, test);
+                console.assert(!group.has(1));
+            },
+            (test, group) => {
+                group.add(1); group.add(2); group.add(3);
+
+                const [deleted1, deleted2, deleted3] = [group.delete(1), group.delete(2), group.delete(3)];
+
+                console.assert(group.length === 0, test);
+                console.assert(deleted1 && deleted2 && deleted3, test);
+                console.assert(!group.has(1) && !group.has(2) && !group.has(3));
+            }
+        ]
+        
+        tests.forEach((test, index) => test(`test ${index}`, new Group()));
+    }
+}
+
+GroupUnitTests.run();
