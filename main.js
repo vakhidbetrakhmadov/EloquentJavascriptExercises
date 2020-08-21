@@ -211,7 +211,7 @@ class Vec {
 
     get length() { 
         return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
-    }
+    };
 }
 
 console.log(new Vec(1, 2).plus(new Vec(2, 3)));
@@ -225,7 +225,7 @@ console.log(new Vec(3, 4).length);
 String.prototype.hash = function() {
     let hash = 0;
     for(let i = 0; i < this.length; i++) {
-        const unicode = this.charCodeAt(i)
+        const unicode = this.charCodeAt(i);
         hash  = ((unicode << 5) - hash) + unicode;
         hash |= 0; // Convert to 32bit integer
     }
@@ -236,49 +236,49 @@ class Group {
 
     // Constructors
     constructor() { 
+        // Public properties 
+        this.length = 0;
         // Private properties
         this._buckets = [];
         this._bucketsCount = 8;
-        // Public properties 
-        this.length = 0;
-    }
+    };
 
     static from(iterable) {
         const group = new Group();
         iterable.forEach(element => group.add(element));
         return group;
-    }
+    };
 
     // Public methods
     has(value) { 
         const index = this._bucketIndexFor(value);
         const bucket = this._buckets[index];
         return this._bucketHasValue(bucket, value);
-    }
+    };
 
     add(value) {
         this._resizeIfNeeded();
         const added = this._add(value); 
         if (added) this.length++; 
         return added;
-    }
+    };
 
     delete(value) { 
         const deleted = this._delete(value);
         if (deleted) this.length--;
         return deleted;
-    }
+    };
 
     // Private methods
     _bucketIndexFor(value) { 
         return Math.abs(JSON.stringify(value).hash()) % this._bucketsCount;
-    }
+    };
 
     _resizeIfNeeded() { 
         const THRESHOLD = 0.75;
         if (this._loadFactor >= THRESHOLD)
             this._bucketsCount *= 2;
-    }
+    };
 
     _add(value) { 
         const index = this._bucketIndexFor(value);
@@ -288,17 +288,17 @@ class Group {
 
         this._buckets[index] = { value, next: bucket };
         return true;
-    }
+    };
 
     _delete(value) { 
         const index = this._bucketIndexFor(value);
-        const bucket = this._buckets[index]
+        const bucket = this._buckets[index];
 
         if (!bucket) return false;
 
         if (bucket.value === value) { 
             this._buckets[index] = bucket.next;
-            return true
+            return true;
         }
 
         for(let previous = bucket, current = bucket.next;
@@ -312,18 +312,18 @@ class Group {
         }
 
         return false;
-    }
+    };
 
     _bucketHasValue(bucket, value) { 
         for(let current = bucket; current; current = current.next) { 
             if (current.value === value) return true;
         }
         return false;
-    }
+    };
 
     get _loadFactor() { 
         return this.length / this._bucketsCount;
-    }
+    };
 }
 
 let group = Group.from([10, 20]);
@@ -390,10 +390,57 @@ class GroupUnitTests {
                 console.assert(deleted1 && deleted2 && deleted3, test);
                 console.assert(!group.has(1) && !group.has(2) && !group.has(3));
             }
-        ]
+        ];
         
         tests.forEach((test, index) => test(`test ${index}`, new Group()));
-    }
+    };
 }
 
 GroupUnitTests.run();
+
+// - Iterable groups
+class GroupIterator { 
+    constructor(group) { 
+        this.group = group;
+        
+        this._currentBucketIndex = 0;
+        this._currentBucketNode = this.group._buckets[0];
+    };
+
+    next() { 
+        if (this._currentBucketIndex >= this.group._bucketsCount)
+            return { value: undefined, done: true };
+
+        if (this._currentBucketNode) { 
+            const value = this._currentBucketNode.value;
+            this._currentBucketNode = this._currentBucketNode.next;
+            return { value, done: false };
+        }
+
+        for(this._currentBucketIndex++;
+            this._currentBucketIndex < this.group._bucketsCount;
+            this._currentBucketIndex++)
+        {
+            if(this._currentBucketNode = this.group._buckets[this._currentBucketIndex]) break;
+        }
+
+        return this.next();
+    };
+}
+
+Group.prototype[Symbol.iterator] = function() { 
+    return new GroupIterator(this);
+}
+
+for (let value of Group.from(["a", "b", "c"])) {
+    console.log(value);
+}
+// → a
+// → b
+// → c
+
+// - Borrowing a method
+let map = {one: true, two: true, hasOwnProperty: true};
+
+console.log(Object.getPrototypeOf(map).hasOwnProperty.call(map, "one"));
+// → true
